@@ -134,7 +134,7 @@ class SwooleIO extends AbstractIO
 
     /**
      * @param int $len
-     * @throws \PhpAmqpLib\Exception\AMQPIOException
+     * @throws \PhpAmqpLib\Exception\AMQPRuntimeException
      * @return mixed|string
      */
     public function read($len)
@@ -147,8 +147,7 @@ class SwooleIO extends AbstractIO
             {
                 $data = substr($this->buffer, 0, $len);
                 $this->buffer = substr($this->buffer, $len);
-
-                var_dump("recv: ".strlen($data));
+                $this->last_read = microtime(true);
 
                 return $data;
             }
@@ -164,12 +163,9 @@ class SwooleIO extends AbstractIO
                 throw new AMQPRuntimeException('Error receiving data, errno=' . $this->sock->errCode);
             }
 
-            var_dump(strlen($read_buffer), $len);
-
-            //TODO 这里需要处理关闭事件
             if ($read_buffer === '')
             {
-                break;
+                continue;
             }
 
             $this->buffer .= $read_buffer;
@@ -177,17 +173,6 @@ class SwooleIO extends AbstractIO
         } while (true);
 
 
-//        if (mb_strlen($data, 'ASCII') !== $len) {
-//            throw new AMQPRuntimeException(
-//                sprintf(
-//                    'Error reading data. Received %s instead of expected %s bytes',
-//                    mb_strlen($data, 'ASCII'),
-//                    $len
-//                )
-//            );
-//        }
-
-        $this->last_read = microtime(true);
         return false;
     }
 
@@ -200,8 +185,6 @@ class SwooleIO extends AbstractIO
     public function write($data)
     {
         $buffer = $this->sock->send($data);
-
-        var_dump("send: ".strlen($data));
 
         if ($buffer === false)
         {
